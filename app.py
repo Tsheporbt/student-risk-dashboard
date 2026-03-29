@@ -226,10 +226,10 @@ role = st.session_state.role
 # STUDENT VIEW
 # ==================================================
 if role == "Student":
- 
+
     student_id = st.session_state.student_id
     student = df[df["id_student"] == student_id].iloc[0]
- 
+
     # ---- helpers ----
     risk_prob = round(float(student["predicted_proba_risk"]), 2)
     if risk_prob >= 0.7:
@@ -241,8 +241,9 @@ if role == "Student":
     else:
         risk_color_bg = "#EAF3DE"
         risk_color_text = "#27500A"
- 
+
     early_eng = round(float(student["early_engagement"]))
+    early_eng_bar = min(early_eng, 100)
     last_week = round(float(student["last_week_activity"]) * 100) if student["last_week_activity"] <= 1 else round(float(student["last_week_activity"]))
     trend = float(student["engagement_trend"])
     trend_label = "Improving" if trend > 0 else "Declining"
@@ -250,9 +251,10 @@ if role == "Student":
     trend_color = "#1D9E75" if trend > 0 else "#E24B4A"
     trend_text_color = "#085041" if trend > 0 else "#A32D2D"
     trend_bg = "#E1F5EE" if trend > 0 else "#FCEBEB"
- 
+
     late_ratio = round(float(student["late_submission_ratio"]) * 100) if student["late_submission_ratio"] <= 1 else round(float(student["late_submission_ratio"]))
-    assess_eng = round(float(student["assessment_week_engagement"]) * 100) if student["assessment_week_engagement"] <= 1 else round(float(student["assessment_week_engagement"]))
+    assess_eng = round(float(student["assessment_week_engagement"]))
+    assess_eng_bar = min(assess_eng, 100)
     proc_score = round(float(student["procrastination_score"]), 2)
     if proc_score >= 0.6:
         proc_label = "High"
@@ -269,7 +271,7 @@ if role == "Student":
         proc_bg = "#EAF3DE"
         proc_text = "#27500A"
         proc_bar = "#639922"
- 
+
     # ---- study tips ----
     tips = []
     if student["procrastination_score"] > 0.4:
@@ -284,7 +286,7 @@ if role == "Student":
         tips.append(("Stay active on the platform during assessment weeks to keep on top of requirements.", "Based on your assessment week activity", "#EF9F27"))
     if not tips:
         tips.append(("You are on track — keep up the great work!", "No concerns identified", "#1D9E75"))
- 
+
     tips_html = ""
     for i, (tip_text, tip_meta, tip_color) in enumerate(tips):
         border = "none" if i == len(tips) - 1 else "0.5px solid #e8e8e4"
@@ -296,7 +298,7 @@ if role == "Student":
             f'<p style="font-size:11px;color:#aaa;margin:2px 0 0;">{tip_meta}</p>'
             f'</div></div>'
         )
- 
+
     st.markdown(f"""
     <style>
     .sv-label {{font-size:11px;font-weight:600;letter-spacing:0.07em;text-transform:uppercase;color:#aaa;margin:0 0 12px;}}
@@ -308,7 +310,7 @@ if role == "Student":
     .bar-track {{height:6px;background:#f0f0ed;border-radius:3px;overflow:hidden;margin-top:6px;}}
     .bar-fill {{height:100%;border-radius:3px;}}
     </style>
- 
+
     <div style="display:flex;align-items:baseline;justify-content:space-between;margin-bottom:24px;">
         <div>
             <p style="margin:0;font-size:20px;font-weight:600;color:#1a1a1a;">My learning engagement</p>
@@ -316,7 +318,7 @@ if role == "Student":
         </div>
         <span style="background:{risk_color_bg};color:{risk_color_text};padding:4px 12px;border-radius:20px;font-size:12px;font-weight:600;">Risk: {risk_prob}</span>
     </div>
- 
+
     <p class="sv-label">Engagement snapshot</p>
     <div style="display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;margin-bottom:28px;">
         <div class="sv-metric"><p class="lbl">Total activity</p><p class="val">{int(student['total_clicks']):,}</p><p class="sub">clicks</p></div>
@@ -324,14 +326,14 @@ if role == "Student":
         <div class="sv-metric"><p class="lbl">Active days</p><p class="val">{int(student['active_days'])}</p><p class="sub">this module</p></div>
         <div class="sv-metric"><p class="lbl">Submissions</p><p class="val">{int(student['num_submissions'])}</p><p class="sub">submitted</p></div>
     </div>
- 
+
     <p class="sv-label">Activity trend</p>
     <div class="sv-card" style="margin-bottom:28px;">
         <div style="display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:20px;">
             <div>
                 <p style="font-size:12px;color:#888;margin:0 0 4px;">Early engagement</p>
                 <p style="font-size:15px;font-weight:600;color:#1a1a1a;margin:0;">{early_eng}%</p>
-                <div class="bar-track"><div class="bar-fill" style="width:{early_eng}%;background:#378ADD;"></div></div>
+                <div class="bar-track"><div class="bar-fill" style="width:{early_eng_bar}%;background:#378ADD;"></div></div>
                 <p style="font-size:11px;color:#aaa;margin:5px 0 0;">{'Good start to the module' if early_eng >= 60 else 'Engaged late in the module'}</p>
             </div>
             <div>
@@ -348,7 +350,7 @@ if role == "Student":
             </div>
         </div>
     </div>
- 
+
     <p class="sv-label">Assessment habits</p>
     <div style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin-bottom:28px;">
         <div class="sv-card">
@@ -362,7 +364,7 @@ if role == "Student":
                 <span style="font-size:13px;color:#1a1a1a;">Assessment week engagement</span>
                 <span style="font-size:13px;font-weight:600;color:#185FA5;">{assess_eng}%</span>
             </div>
-            <div class="bar-track"><div class="bar-fill" style="width:{min(assess_eng,100)}%;background:#378ADD;"></div></div>
+            <div class="bar-track"><div class="bar-fill" style="width:{assess_eng_bar}%;background:#378ADD;"></div></div>
         </div>
         <div class="sv-card">
             <p style="font-size:12px;color:#888;margin:0 0 10px;">Procrastination score</p>
@@ -376,7 +378,7 @@ if role == "Student":
             </p>
         </div>
     </div>
- 
+
     <p class="sv-label">Study suggestions</p>
     <div class="sv-card">
         {tips_html}
@@ -387,13 +389,13 @@ if role == "Student":
 # ACADEMIC DEVELOPER VIEW
 # ==================================================
 elif role == "Academic Developer":
- 
+
     # ---- session state for nav and selected student ----
     if "av_page" not in st.session_state:
         st.session_state.av_page = "overview"
     if "av_selected_student" not in st.session_state:
         st.session_state.av_selected_student = None
- 
+
     # ---- shared CSS ----
     st.markdown("""
     <style>
@@ -413,7 +415,7 @@ elif role == "Academic Developer":
     .int-badge-advisory{background:#FAEEDA;color:#633806;padding:2px 8px;border-radius:10px;font-size:11px;font-weight:600;}
     </style>
     """, unsafe_allow_html=True)
- 
+
     # ---- sidebar navigation ----
     with st.sidebar:
         st.markdown("<hr style='border:none;border-top:1px solid #e8e8e4;margin:16px 0;'>", unsafe_allow_html=True)
@@ -424,12 +426,12 @@ elif role == "Academic Developer":
         if st.button("Student detail", use_container_width=True):
             st.session_state.av_page = "detail"
             safe_rerun()
- 
+
     # ============================================================
     # PAGE 1 — COHORT OVERVIEW
     # ============================================================
     if st.session_state.av_page == "overview":
- 
+
         total   = df["id_student"].nunique()
         n_high  = int((df["risk_level"] == "High Risk").sum())
         n_mod   = int((df["risk_level"] == "Moderate Risk").sum())
@@ -437,7 +439,7 @@ elif role == "Academic Developer":
         pct_hi  = round(n_high / total * 100)
         pct_md  = round(n_mod  / total * 100)
         pct_lo  = round(n_low  / total * 100)
- 
+
         st.markdown(f"""
         <div style="display:flex;align-items:baseline;justify-content:space-between;margin-bottom:24px;">
             <div>
@@ -445,7 +447,7 @@ elif role == "Academic Developer":
                 <p style="margin:2px 0 0;font-size:13px;color:#888;">Academic risk analytics — all students</p>
             </div>
         </div>
- 
+
         <p class="av-label">Cohort stats</p>
         <div style="display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;margin-bottom:28px;">
             <div class="av-metric"><p class="lbl">Total students</p><p class="val">{total}</p></div>
@@ -453,7 +455,7 @@ elif role == "Academic Developer":
             <div class="av-metric"><p class="lbl">Moderate risk</p><p class="val" style="color:#854F0B;">{n_mod}</p></div>
             <div class="av-metric"><p class="lbl">Low risk</p><p class="val" style="color:#3B6D11;">{n_low}</p></div>
         </div>
- 
+
         <p class="av-label">Risk distribution</p>
         <div class="av-card" style="margin-bottom:28px;">
             <div style="display:flex;gap:3px;height:24px;border-radius:6px;overflow:hidden;margin-bottom:12px;">
@@ -468,19 +470,19 @@ elif role == "Academic Developer":
             </div>
         </div>
         """, unsafe_allow_html=True)
- 
+
         # ---- filters ----
         st.markdown('<p class="av-label">All students</p>', unsafe_allow_html=True)
         fc1, fc2, fc3 = st.columns(3)
         filter_risk   = fc1.selectbox("Risk level",   ["All"] + ["High Risk", "Moderate Risk", "Low Risk"], label_visibility="collapsed")
         filter_module = fc2.selectbox("Module",       ["All modules"] + sorted(df["code_module"].dropna().unique().tolist()), label_visibility="collapsed")
         filter_region = fc3.selectbox("Region",       ["All regions"] + sorted(df["region"].dropna().unique().tolist()), label_visibility="collapsed")
- 
+
         filtered = df.copy()
         if filter_risk   != "All":           filtered = filtered[filtered["risk_level"]   == filter_risk]
         if filter_module != "All modules":   filtered = filtered[filtered["code_module"]  == filter_module]
         if filter_region != "All regions":   filtered = filtered[filtered["region"]       == filter_region]
- 
+
         # ---- student table ----
         display_cols = {
             "id_student":           "Student ID",
@@ -494,7 +496,7 @@ elif role == "Academic Developer":
         table_df = table_df.rename(columns=display_cols)
         table_df["Probability"] = table_df["Probability"].round(3)
         table_df = table_df.sort_values("Probability", ascending=False).reset_index(drop=True)
- 
+
         st.dataframe(
             table_df,
             use_container_width=True,
@@ -507,19 +509,19 @@ elif role == "Academic Developer":
             }
         )
         st.caption("Select a student in the sidebar → Student detail to drill down.")
- 
+
     # ============================================================
     # PAGE 2 — STUDENT DETAIL
     # ============================================================
     elif st.session_state.av_page == "detail":
- 
+
         selected_id = st.selectbox(
             "Select student",
             options=sorted(df["id_student"].unique()),
             index=0
         )
         student = df[df["id_student"] == selected_id].iloc[0]
- 
+
         # ---- risk helpers ----
         risk_prob = round(float(student["predicted_proba_risk"]), 2)
         rl = student["risk_level"]
@@ -529,22 +531,20 @@ elif role == "Academic Developer":
             rb_bg, rb_text = "#FAEEDA", "#633806"
         else:
             rb_bg, rb_text = "#EAF3DE", "#27500A"
- 
+
         # ---- engagement helpers ----
-        def to_pct(val):
-            v = float(val)
-            return round(v * 100) if v <= 1 else round(v)
- 
         active_weeks   = int(student["active_weeks"])
         proc_score     = round(float(student["procrastination_score"]), 2)
-        late_ratio     = to_pct(student["late_submission_ratio"])
-        early_eng      = to_pct(student["early_engagement"])
-        assess_eng     = to_pct(student["assessment_week_engagement"])
+        late_ratio     = round(float(student["late_submission_ratio"]) * 100) if float(student["late_submission_ratio"]) <= 1 else round(float(student["late_submission_ratio"]))
+        early_eng      = round(float(student["early_engagement"]))
+        assess_eng     = round(float(student["assessment_week_engagement"]))
+        early_eng_bar  = min(early_eng, 100)
+        assess_eng_bar = min(assess_eng, 100)
         num_subs       = int(student["num_submissions"])
         eng_trend      = float(student["engagement_trend"])
         trend_label    = "Improving" if eng_trend > 0 else "Declining"
         trend_color    = "#1D9E75" if eng_trend > 0 else "#E24B4A"
- 
+
         # ---- activity breakdown ----
         activity_cols = ["homepage","oucontent","resource","quiz","forumng","ouwiki",
                          "page","url","subpage","glossary","repeatactivity","dataplus"]
@@ -556,13 +556,13 @@ elif role == "Academic Developer":
                     act_data.append((col.replace("ou","").replace("ng","").capitalize(), val))
         act_data.sort(key=lambda x: x[1], reverse=True)
         act_max = act_data[0][1] if act_data else 1
- 
+
         def act_color(name, val, max_val):
             pct = val / max_val
             if pct > 0.5: return "#378ADD"
             if pct > 0.2: return "#EF9F27"
             return "#E24B4A"
- 
+
         act_html = ""
         for name, val in act_data[:8]:
             pct = round(val / act_max * 100)
@@ -575,7 +575,7 @@ elif role == "Academic Developer":
                 f'<span style="font-size:12px;color:#1a1a1a;font-weight:600;width:36px;text-align:right;">{val:,}</span>'
                 f'</div>'
             )
- 
+
         # ---- interventions ----
         urgent, advisory = [], []
         if active_weeks < 5:
@@ -590,7 +590,7 @@ elif role == "Academic Developer":
             advisory.append("Discuss submission planning — over half of submissions have been late.")
         if assess_eng < 40:
             advisory.append("Encourage platform activity during assessment weeks.")
- 
+
         int_html = ""
         for msg in urgent:
             int_html += f'<div class="int-card-urgent"><span class="int-badge-urgent">Urgent</span><p style="font-size:12px;color:#1a1a1a;margin:6px 0 0;line-height:1.5;">{msg}</p></div>'
@@ -598,12 +598,12 @@ elif role == "Academic Developer":
             int_html += f'<div class="int-card-advisory"><span class="int-badge-advisory">Advisory</span><p style="font-size:12px;color:#1a1a1a;margin:6px 0 0;line-height:1.5;">{msg}</p></div>'
         if not urgent and not advisory:
             int_html = '<p style="font-size:13px;color:#3B6D11;background:#EAF3DE;padding:10px 14px;border-radius:8px;margin:0;">No interventions required — student is on track.</p>'
- 
+
         # ---- pre-compute all conditionals so no ternary sits inside the f-string ----
         avatar_initial   = str(student['gender'])[0].upper() if pd.notna(student['gender']) else '?'
         prev_attempts    = int(student['num_of_prev_attempts']) if pd.notna(student['num_of_prev_attempts']) else 0
         credits_studied  = int(student['studied_credits']) if pd.notna(student['studied_credits']) else '—'
- 
+
         aw_pct           = min(round(active_weeks / 12 * 100), 100)
         aw_color         = "#639922" if active_weeks >= 8 else "#E24B4A"
         ee_color         = "#639922" if early_eng >= 60 else "#E24B4A"
@@ -616,7 +616,7 @@ elif role == "Academic Developer":
             ps_color = "#EF9F27"
         else:
             ps_color = "#639922"
- 
+
         # ---- render ----
         st.markdown(f"""
         <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:24px;">
@@ -626,9 +626,9 @@ elif role == "Academic Developer":
             </div>
             <span style="background:{rb_bg};color:{rb_text};padding:4px 14px;border-radius:20px;font-size:12px;font-weight:600;">{rl} · {risk_prob}</span>
         </div>
- 
+
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:24px;">
- 
+
             <div class="av-card">
                 <p class="av-label" style="margin-bottom:14px;">Student profile</p>
                 <div style="display:flex;align-items:center;gap:12px;margin-bottom:14px;padding-bottom:14px;border-bottom:0.5px solid #f0f0ed;">
@@ -649,7 +649,7 @@ elif role == "Academic Developer":
                     <tr><td style="color:#888;padding:4px 0;">Final result</td><td style="text-align:right;color:#1a1a1a;font-weight:500;">{student['final_result']}</td></tr>
                 </table>
             </div>
- 
+
             <div class="av-card">
                 <p class="av-label" style="margin-bottom:14px;">Engagement deep-dive</p>
                 <div style="margin-bottom:10px;">
@@ -658,7 +658,7 @@ elif role == "Academic Developer":
                 </div>
                 <div style="margin-bottom:10px;">
                     <div style="display:flex;justify-content:space-between;"><span style="font-size:12px;color:#888;">Early engagement</span><span style="font-size:12px;font-weight:600;color:#1a1a1a;">{early_eng}%</span></div>
-                    <div class="bar-track"><div class="bar-fill" style="width:{early_eng}%;background:{ee_color};"></div></div>
+                    <div class="bar-track"><div class="bar-fill" style="width:{early_eng_bar}%;background:{ee_color};"></div></div>
                 </div>
                 <div style="margin-bottom:10px;">
                     <div style="display:flex;justify-content:space-between;"><span style="font-size:12px;color:#888;">Engagement trend</span><span style="font-size:12px;font-weight:600;color:{trend_color};">{trend_label}</span></div>
@@ -666,7 +666,7 @@ elif role == "Academic Developer":
                 </div>
                 <div style="margin-bottom:10px;">
                     <div style="display:flex;justify-content:space-between;"><span style="font-size:12px;color:#888;">Assessment week engagement</span><span style="font-size:12px;font-weight:600;color:#1a1a1a;">{assess_eng}%</span></div>
-                    <div class="bar-track"><div class="bar-fill" style="width:{min(assess_eng,100)}%;background:{ae_color};"></div></div>
+                    <div class="bar-track"><div class="bar-fill" style="width:{assess_eng_bar}%;background:{ae_color};"></div></div>
                 </div>
                 <div style="margin-bottom:10px;">
                     <div style="display:flex;justify-content:space-between;"><span style="font-size:12px;color:#888;">Late submission ratio</span><span style="font-size:12px;font-weight:600;color:#1a1a1a;">{late_ratio}%</span></div>
@@ -678,7 +678,7 @@ elif role == "Academic Developer":
                 </div>
             </div>
         </div>
- 
+
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;">
             <div class="av-card">
                 <p class="av-label" style="margin-bottom:14px;">Activity breakdown</p>
@@ -690,4 +690,3 @@ elif role == "Academic Developer":
             </div>
         </div>
         """, unsafe_allow_html=True)
- 
