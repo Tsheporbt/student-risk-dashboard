@@ -394,12 +394,83 @@ elif role == "Academic Developer":
     st.title("Academic Risk Analytics")
     st.caption("Decision-support for targeted student interventions")
  
+    # ---- cohort stats ----
+    total  = df["id_student"].nunique()
+    n_high = int((df["risk_level"] == "High Risk").sum())
+    n_mod  = int((df["risk_level"] == "Moderate Risk").sum())
+    n_low  = int((df["risk_level"] == "Low Risk").sum())
+    pct_hi = round(n_high / total * 100)
+    pct_md = round(n_mod  / total * 100)
+    pct_lo = round(n_low  / total * 100)
+ 
     st.subheader("Risk Overview")
     col1, col2, col3, col4 = st.columns(4)
-    col1.metric("Total Students", df["id_student"].nunique())
-    col2.metric("High Risk", (df["risk_level"] == "High Risk").sum())
-    col3.metric("Moderate Risk", (df["risk_level"] == "Moderate Risk").sum())
-    col4.metric("Low Risk", (df["risk_level"] == "Low Risk").sum())
+    col1.metric("Total Students", total)
+    col2.metric("High Risk",      n_high)
+    col3.metric("Moderate Risk",  n_mod)
+    col4.metric("Low Risk",       n_low)
+ 
+    # ---- risk distribution bar ----
+    dist_html = (
+        '<div style="margin:8px 0 24px;">'
+        '<div style="display:flex;gap:3px;height:22px;border-radius:6px;overflow:hidden;margin-bottom:10px;">'
+        '<div style="width:' + str(pct_hi) + '%;background:#E24B4A;"></div>'
+        '<div style="width:' + str(pct_md) + '%;background:#EF9F27;"></div>'
+        '<div style="width:' + str(pct_lo) + '%;background:#639922;"></div>'
+        '</div>'
+        '<div style="display:flex;gap:20px;font-size:12px;">'
+        '<span style="display:flex;align-items:center;gap:5px;">'
+        '<span style="width:10px;height:10px;border-radius:2px;background:#E24B4A;display:inline-block;"></span>'
+        '<span style="color:#888;">High risk ' + str(pct_hi) + '%</span></span>'
+        '<span style="display:flex;align-items:center;gap:5px;">'
+        '<span style="width:10px;height:10px;border-radius:2px;background:#EF9F27;display:inline-block;"></span>'
+        '<span style="color:#888;">Moderate ' + str(pct_md) + '%</span></span>'
+        '<span style="display:flex;align-items:center;gap:5px;">'
+        '<span style="width:10px;height:10px;border-radius:2px;background:#639922;display:inline-block;"></span>'
+        '<span style="color:#888;">Low risk ' + str(pct_lo) + '%</span></span>'
+        '</div></div>'
+    )
+    st.markdown(dist_html, unsafe_allow_html=True)
+ 
+    # ---- filters ----
+    st.subheader("All Students")
+    fc1, fc2, fc3 = st.columns(3)
+    filter_risk   = fc1.selectbox("Risk level",  ["All"] + ["High Risk", "Moderate Risk", "Low Risk"])
+    filter_module = fc2.selectbox("Module",      ["All modules"] + sorted(df["code_module"].dropna().unique().tolist()))
+    filter_region = fc3.selectbox("Region",      ["All regions"] + sorted(df["region"].dropna().unique().tolist()))
+ 
+    filtered = df.copy()
+    if filter_risk   != "All":         filtered = filtered[filtered["risk_level"]  == filter_risk]
+    if filter_module != "All modules": filtered = filtered[filtered["code_module"] == filter_module]
+    if filter_region != "All regions": filtered = filtered[filtered["region"]      == filter_region]
+ 
+    # ---- student table ----
+    display_cols = {
+        "id_student":           "Student ID",
+        "code_module":          "Module",
+        "code_presentation":    "Presentation",
+        "risk_level":           "Risk",
+        "predicted_proba_risk": "Probability",
+        "final_result":         "Result",
+    }
+    table_df = filtered[list(display_cols.keys())].copy()
+    table_df = table_df.rename(columns=display_cols)
+    table_df["Probability"] = table_df["Probability"].round(3)
+    table_df = table_df.sort_values("Probability", ascending=False).reset_index(drop=True)
+ 
+    st.dataframe(
+        table_df,
+        use_container_width=True,
+        hide_index=True,
+        column_config={
+            "Student ID":  st.column_config.TextColumn("Student ID"),
+            "Probability": st.column_config.ProgressColumn(
+                "Probability", min_value=0, max_value=1, format="%.3f"
+            ),
+        }
+    )
+ 
+    st.divider()
  
     st.subheader("Student Drill-Down")
     selected_student = st.selectbox("Select Student", sorted(df["id_student"].unique()))
