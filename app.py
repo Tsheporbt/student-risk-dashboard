@@ -1,4 +1,5 @@
 ﻿import streamlit as st
+import streamlit.components.v1 as components
 import pandas as pd
 from credentials import USERS
 
@@ -202,7 +203,7 @@ with st.sidebar:
                 <p class="user-role">{role}</p>
             </div>
         </div>
-        """, unsafe_allow_html=True)
+        """, height=1400, scrolling=True)
 
         st.markdown("<br>", unsafe_allow_html=True)
 
@@ -469,7 +470,7 @@ elif role == "Academic Developer":
                 <span style="display:flex;align-items:center;gap:5px;"><span style="width:10px;height:10px;border-radius:2px;background:#639922;display:inline-block;"></span><span style="color:#888;">Low risk {pct_lo}%</span></span>
             </div>
         </div>
-        """, unsafe_allow_html=True)
+        """, height=1400, scrolling=True)
 
         # ---- filters ----
         st.markdown('<p class="av-label">All students</p>', unsafe_allow_html=True)
@@ -618,7 +619,7 @@ elif role == "Academic Developer":
             ps_color = "#639922"
 
         # ---- render ----
-        st.markdown(f"""
+        components.html(f"""
         <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:24px;">
             <div>
                 <p style="margin:0;font-size:20px;font-weight:600;color:#1a1a1a;">Student {selected_id}</p>
@@ -689,4 +690,4 @@ elif role == "Academic Developer":
                 {int_html}
             </div>
         </div>
-        """, unsafe_allow_html=True)
+        """, height=1400, scrolling=True)
