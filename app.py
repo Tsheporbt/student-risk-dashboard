@@ -599,6 +599,24 @@ elif role == "Academic Developer":
         if not urgent and not advisory:
             int_html = '<p style="font-size:13px;color:#3B6D11;background:#EAF3DE;padding:10px 14px;border-radius:8px;margin:0;">No interventions required — student is on track.</p>'
  
+        # ---- pre-compute all conditionals so no ternary sits inside the f-string ----
+        avatar_initial   = str(student['gender'])[0].upper() if pd.notna(student['gender']) else '?'
+        prev_attempts    = int(student['num_of_prev_attempts']) if pd.notna(student['num_of_prev_attempts']) else 0
+        credits_studied  = int(student['studied_credits']) if pd.notna(student['studied_credits']) else '—'
+ 
+        aw_pct           = min(round(active_weeks / 12 * 100), 100)
+        aw_color         = "#639922" if active_weeks >= 8 else "#E24B4A"
+        ee_color         = "#639922" if early_eng >= 60 else "#E24B4A"
+        ae_color         = "#639922" if assess_eng >= 50 else "#EF9F27"
+        lr_color         = "#E24B4A" if late_ratio > 50 else "#639922"
+        trend_pct        = min(round(abs(eng_trend) * 100), 100)
+        if proc_score > 0.6:
+            ps_color = "#E24B4A"
+        elif proc_score > 0.35:
+            ps_color = "#EF9F27"
+        else:
+            ps_color = "#639922"
+ 
         # ---- render ----
         st.markdown(f"""
         <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:24px;">
@@ -614,10 +632,10 @@ elif role == "Academic Developer":
             <div class="av-card">
                 <p class="av-label" style="margin-bottom:14px;">Student profile</p>
                 <div style="display:flex;align-items:center;gap:12px;margin-bottom:14px;padding-bottom:14px;border-bottom:0.5px solid #f0f0ed;">
-                    <div style="width:40px;height:40px;border-radius:50%;background:#dbeafe;display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:600;color:#1d4ed8;flex-shrink:0;">{str(student['gender'])[0].upper() if pd.notna(student['gender']) else '?'}</div>
+                    <div style="width:40px;height:40px;border-radius:50%;background:#dbeafe;display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:600;color:#1d4ed8;flex-shrink:0;">{avatar_initial}</div>
                     <div>
                         <p style="margin:0;font-size:14px;font-weight:600;color:#1a1a1a;">Student {selected_id}</p>
-                        <p style="margin:0;font-size:12px;color:#888;">Prev. attempts: {int(student['num_of_prev_attempts']) if pd.notna(student['num_of_prev_attempts']) else 0}</p>
+                        <p style="margin:0;font-size:12px;color:#888;">Prev. attempts: {prev_attempts}</p>
                     </div>
                 </div>
                 <table style="width:100%;font-size:12px;border-collapse:collapse;">
@@ -627,7 +645,7 @@ elif role == "Academic Developer":
                     <tr><td style="color:#888;padding:4px 0;">Education</td><td style="text-align:right;color:#1a1a1a;font-weight:500;">{student['highest_education']}</td></tr>
                     <tr><td style="color:#888;padding:4px 0;">IMD band</td><td style="text-align:right;color:#1a1a1a;font-weight:500;">{student['imd_band']}</td></tr>
                     <tr><td style="color:#888;padding:4px 0;">Disability</td><td style="text-align:right;color:#1a1a1a;font-weight:500;">{student['disability']}</td></tr>
-                    <tr><td style="color:#888;padding:4px 0;">Credits studied</td><td style="text-align:right;color:#1a1a1a;font-weight:500;">{int(student['studied_credits']) if pd.notna(student['studied_credits']) else '—'}</td></tr>
+                    <tr><td style="color:#888;padding:4px 0;">Credits studied</td><td style="text-align:right;color:#1a1a1a;font-weight:500;">{credits_studied}</td></tr>
                     <tr><td style="color:#888;padding:4px 0;">Final result</td><td style="text-align:right;color:#1a1a1a;font-weight:500;">{student['final_result']}</td></tr>
                 </table>
             </div>
@@ -636,27 +654,27 @@ elif role == "Academic Developer":
                 <p class="av-label" style="margin-bottom:14px;">Engagement deep-dive</p>
                 <div style="margin-bottom:10px;">
                     <div style="display:flex;justify-content:space-between;"><span style="font-size:12px;color:#888;">Active weeks</span><span style="font-size:12px;font-weight:600;color:#1a1a1a;">{active_weeks}</span></div>
-                    <div class="bar-track"><div class="bar-fill" style="width:{min(round(active_weeks/12*100),100)}%;background:{'#639922' if active_weeks>=8 else '#E24B4A'};"></div></div>
+                    <div class="bar-track"><div class="bar-fill" style="width:{aw_pct}%;background:{aw_color};"></div></div>
                 </div>
                 <div style="margin-bottom:10px;">
                     <div style="display:flex;justify-content:space-between;"><span style="font-size:12px;color:#888;">Early engagement</span><span style="font-size:12px;font-weight:600;color:#1a1a1a;">{early_eng}%</span></div>
-                    <div class="bar-track"><div class="bar-fill" style="width:{early_eng}%;background:{'#639922' if early_eng>=60 else '#E24B4A'};"></div></div>
+                    <div class="bar-track"><div class="bar-fill" style="width:{early_eng}%;background:{ee_color};"></div></div>
                 </div>
                 <div style="margin-bottom:10px;">
                     <div style="display:flex;justify-content:space-between;"><span style="font-size:12px;color:#888;">Engagement trend</span><span style="font-size:12px;font-weight:600;color:{trend_color};">{trend_label}</span></div>
-                    <div class="bar-track"><div class="bar-fill" style="width:{min(round(abs(eng_trend)*100),100)}%;background:{trend_color};"></div></div>
+                    <div class="bar-track"><div class="bar-fill" style="width:{trend_pct}%;background:{trend_color};"></div></div>
                 </div>
                 <div style="margin-bottom:10px;">
                     <div style="display:flex;justify-content:space-between;"><span style="font-size:12px;color:#888;">Assessment week engagement</span><span style="font-size:12px;font-weight:600;color:#1a1a1a;">{assess_eng}%</span></div>
-                    <div class="bar-track"><div class="bar-fill" style="width:{min(assess_eng,100)}%;background:{'#639922' if assess_eng>=50 else '#EF9F27'};"></div></div>
+                    <div class="bar-track"><div class="bar-fill" style="width:{min(assess_eng,100)}%;background:{ae_color};"></div></div>
                 </div>
                 <div style="margin-bottom:10px;">
                     <div style="display:flex;justify-content:space-between;"><span style="font-size:12px;color:#888;">Late submission ratio</span><span style="font-size:12px;font-weight:600;color:#1a1a1a;">{late_ratio}%</span></div>
-                    <div class="bar-track"><div class="bar-fill" style="width:{late_ratio}%;background:{'#E24B4A' if late_ratio>50 else '#639922'};"></div></div>
+                    <div class="bar-track"><div class="bar-fill" style="width:{late_ratio}%;background:{lr_color};"></div></div>
                 </div>
                 <div>
                     <div style="display:flex;justify-content:space-between;"><span style="font-size:12px;color:#888;">Procrastination score</span><span style="font-size:12px;font-weight:600;color:#1a1a1a;">{proc_score}</span></div>
-                    <div class="bar-track"><div class="bar-fill" style="width:{int(proc_score*100)}%;background:{'#E24B4A' if proc_score>0.6 else '#EF9F27' if proc_score>0.35 else '#639922'};"></div></div>
+                    <div class="bar-track"><div class="bar-fill" style="width:{int(proc_score*100)}%;background:{ps_color};"></div></div>
                 </div>
             </div>
         </div>
