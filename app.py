@@ -620,6 +620,17 @@ elif role == "Academic Developer":
 
         # ---- render ----
         components.html(f"""
+        <style>
+        body {{margin:0;padding:0;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;}}
+        .av-label {{font-size:11px;font-weight:600;letter-spacing:0.07em;text-transform:uppercase;color:#aaa;margin:0 0 12px;}}
+        .av-card {{background:#fff;border:1px solid #e8e8e4;border-radius:12px;padding:16px 18px;}}
+        .bar-track {{height:6px;background:#f0f0ed;border-radius:3px;overflow:hidden;margin-top:5px;}}
+        .bar-fill {{height:100%;border-radius:3px;}}
+        .int-card-urgent {{padding:10px 12px;background:#fff8f8;border-radius:8px;border-left:3px solid #E24B4A;margin-bottom:8px;}}
+        .int-card-advisory {{padding:10px 12px;background:#fffbf5;border-radius:8px;border-left:3px solid #EF9F27;margin-bottom:8px;}}
+        .int-badge-urgent {{background:#FCEBEB;color:#A32D2D;padding:2px 8px;border-radius:10px;font-size:11px;font-weight:600;}}
+        .int-badge-advisory {{background:#FAEEDA;color:#633806;padding:2px 8px;border-radius:10px;font-size:11px;font-weight:600;}}
+        </style>
         <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:24px;">
             <div>
                 <p style="margin:0;font-size:20px;font-weight:600;color:#1a1a1a;">Student {selected_id}</p>
