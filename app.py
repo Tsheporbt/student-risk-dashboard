@@ -226,39 +226,162 @@ role = st.session_state.role
 # STUDENT VIEW
 # ==================================================
 if role == "Student":
-
-    st.title("My Learning Engagement")
-    st.caption("Private insights to support your studies")
-
+ 
     student_id = st.session_state.student_id
     student = df[df["id_student"] == student_id].iloc[0]
-
-    st.subheader("Engagement Summary")
-    col1, col2, col3 = st.columns(3)
-    col1.metric("Active Weeks", student["active_weeks"])
-    col2.metric("Active Days", student["active_days"])
-    col3.metric("Submissions", student["num_submissions"])
-
-    st.subheader("Engagement Trend")
-    if student["engagement_trend"] > 0:
-        st.success("Your engagement is improving over time.")
+ 
+    # ---- helpers ----
+    risk_prob = round(float(student["predicted_proba_risk"]), 2)
+    if risk_prob >= 0.7:
+        risk_color_bg = "#FCEBEB"
+        risk_color_text = "#A32D2D"
+    elif risk_prob >= 0.4:
+        risk_color_bg = "#FAEEDA"
+        risk_color_text = "#633806"
     else:
-        st.warning("Your engagement has declined recently.")
-
-    st.subheader("Study Suggestions")
+        risk_color_bg = "#EAF3DE"
+        risk_color_text = "#27500A"
+ 
+    early_eng = round(float(student["early_engagement"]))
+    last_week = round(float(student["last_week_activity"]) * 100) if student["last_week_activity"] <= 1 else round(float(student["last_week_activity"]))
+    trend = float(student["engagement_trend"])
+    trend_label = "Improving" if trend > 0 else "Declining"
+    trend_pct = min(max(round(abs(trend) * 100), 5), 100)
+    trend_color = "#1D9E75" if trend > 0 else "#E24B4A"
+    trend_text_color = "#085041" if trend > 0 else "#A32D2D"
+    trend_bg = "#E1F5EE" if trend > 0 else "#FCEBEB"
+ 
+    late_ratio = round(float(student["late_submission_ratio"]) * 100) if student["late_submission_ratio"] <= 1 else round(float(student["late_submission_ratio"]))
+    assess_eng = round(float(student["assessment_week_engagement"]) * 100) if student["assessment_week_engagement"] <= 1 else round(float(student["assessment_week_engagement"]))
+    proc_score = round(float(student["procrastination_score"]), 2)
+    if proc_score >= 0.6:
+        proc_label = "High"
+        proc_bg = "#FCEBEB"
+        proc_text = "#A32D2D"
+        proc_bar = "#E24B4A"
+    elif proc_score >= 0.35:
+        proc_label = "Moderate"
+        proc_bg = "#FAEEDA"
+        proc_text = "#633806"
+        proc_bar = "#EF9F27"
+    else:
+        proc_label = "Low"
+        proc_bg = "#EAF3DE"
+        proc_text = "#27500A"
+        proc_bar = "#639922"
+ 
+    # ---- study tips ----
     tips = []
-    if student["num_submissions"] < 3:
-        tips.append("Review upcoming assessment deadlines.")
     if student["procrastination_score"] > 0.4:
-        tips.append("Try starting assignments earlier and breaking tasks into steps.")
+        tips.append(("Try starting assignments earlier and breaking them into smaller steps.", "Based on your procrastination score", "#E24B4A"))
     if student["early_engagement"] < 50:
-        tips.append("Engaging earlier with course materials may reduce pressure.")
-
-    if tips:
-        for t in tips:
-            st.write(f"• {t}")
-    else:
-        st.success("You are on track — keep up the good work!")
+        tips.append(("Engaging with course materials earlier each week may reduce deadline pressure.", "Based on your early engagement pattern", "#378ADD"))
+    if student["num_submissions"] < 3:
+        tips.append(("Review upcoming assessment deadlines — you have fewer submissions than expected.", "Based on your submission count", "#E24B4A"))
+    if student["resource_diversity"] < 0.4:
+        tips.append(("Try exploring different content types — quizzes, wikis, and forums alongside readings.", "Based on your resource diversity", "#1D9E75"))
+    if student["assessment_week_engagement"] < 0.5:
+        tips.append(("Stay active on the platform during assessment weeks to keep on top of requirements.", "Based on your assessment week activity", "#EF9F27"))
+    if not tips:
+        tips.append(("You are on track — keep up the great work!", "No concerns identified", "#1D9E75"))
+ 
+    tips_html = ""
+    for tip_text, tip_meta, tip_color in tips:
+        tips_html += f"""
+        <div style="display:flex;align-items:flex-start;gap:10px;padding:10px 0;border-bottom:0.5px solid #e8e8e4;">
+            <div style="width:6px;height:6px;border-radius:50%;background:{tip_color};flex-shrink:0;margin-top:6px;"></div>
+            <div>
+                <p style="font-size:13px;color:#1a1a1a;line-height:1.5;margin:0;">{tip_text}</p>
+                <p style="font-size:11px;color:#aaa;margin:2px 0 0;">{tip_meta}</p>
+            </div>
+        </div>"""
+    tips_html = tips_html.rstrip('<div style="display:flex;align-items:flex-start;gap:10px;padding:10px 0;border-bottom:0.5px solid #e8e8e4;">')
+ 
+    st.markdown(f"""
+    <style>
+    .sv-label {{font-size:11px;font-weight:600;letter-spacing:0.07em;text-transform:uppercase;color:#aaa;margin:0 0 12px;}}
+    .sv-metric {{background:#f8f8f6;border-radius:8px;padding:14px 16px;}}
+    .sv-metric .lbl {{font-size:11px;color:#888;margin:0 0 4px;}}
+    .sv-metric .val {{font-size:22px;font-weight:600;color:#1a1a1a;margin:0;}}
+    .sv-metric .sub {{font-size:11px;color:#bbb;margin:2px 0 0;}}
+    .sv-card {{background:#fff;border:1px solid #e8e8e4;border-radius:12px;padding:16px 18px;margin-bottom:0;}}
+    .bar-track {{height:6px;background:#f0f0ed;border-radius:3px;overflow:hidden;margin-top:6px;}}
+    .bar-fill {{height:100%;border-radius:3px;}}
+    </style>
+ 
+    <div style="display:flex;align-items:baseline;justify-content:space-between;margin-bottom:24px;">
+        <div>
+            <p style="margin:0;font-size:20px;font-weight:600;color:#1a1a1a;">My learning engagement</p>
+            <p style="margin:2px 0 0;font-size:13px;color:#888;">Private insights to support your studies</p>
+        </div>
+        <span style="background:{risk_color_bg};color:{risk_color_text};padding:4px 12px;border-radius:20px;font-size:12px;font-weight:600;">Risk: {risk_prob}</span>
+    </div>
+ 
+    <p class="sv-label">Engagement snapshot</p>
+    <div style="display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;margin-bottom:28px;">
+        <div class="sv-metric"><p class="lbl">Total activity</p><p class="val">{int(student['total_clicks']):,}</p><p class="sub">clicks</p></div>
+        <div class="sv-metric"><p class="lbl">Active weeks</p><p class="val">{int(student['active_weeks'])}</p><p class="sub">this module</p></div>
+        <div class="sv-metric"><p class="lbl">Active days</p><p class="val">{int(student['active_days'])}</p><p class="sub">this module</p></div>
+        <div class="sv-metric"><p class="lbl">Submissions</p><p class="val">{int(student['num_submissions'])}</p><p class="sub">submitted</p></div>
+    </div>
+ 
+    <p class="sv-label">Activity trend</p>
+    <div class="sv-card" style="margin-bottom:28px;">
+        <div style="display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:20px;">
+            <div>
+                <p style="font-size:12px;color:#888;margin:0 0 4px;">Early engagement</p>
+                <p style="font-size:15px;font-weight:600;color:#1a1a1a;margin:0;">{early_eng}%</p>
+                <div class="bar-track"><div class="bar-fill" style="width:{early_eng}%;background:#378ADD;"></div></div>
+                <p style="font-size:11px;color:#aaa;margin:5px 0 0;">{'Good start to the module' if early_eng >= 60 else 'Engaged late in the module'}</p>
+            </div>
+            <div>
+                <p style="font-size:12px;color:#888;margin:0 0 4px;">Recent trend</p>
+                <p style="font-size:15px;font-weight:600;color:#1a1a1a;margin:0;">{trend_label}</p>
+                <div class="bar-track"><div class="bar-fill" style="width:{trend_pct}%;background:{trend_color};"></div></div>
+                <p style="font-size:11px;color:#aaa;margin:5px 0 0;"><span style="background:{trend_bg};color:{trend_text_color};padding:1px 6px;border-radius:10px;font-size:10px;">{'+' if trend > 0 else ''}{round(trend, 3)}</span></p>
+            </div>
+            <div>
+                <p style="font-size:12px;color:#888;margin:0 0 4px;">Last week activity</p>
+                <p style="font-size:15px;font-weight:600;color:#1a1a1a;margin:0;">{last_week}%</p>
+                <div class="bar-track"><div class="bar-fill" style="width:{min(last_week,100)}%;background:#1D9E75;"></div></div>
+                <p style="font-size:11px;color:#aaa;margin:5px 0 0;">{'Active last week' if last_week >= 50 else 'Low activity last week'}</p>
+            </div>
+        </div>
+    </div>
+ 
+    <p class="sv-label">Assessment habits</p>
+    <div style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin-bottom:28px;">
+        <div class="sv-card">
+            <p style="font-size:12px;color:#888;margin:0 0 12px;">Submission behaviour</p>
+            <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:4px;">
+                <span style="font-size:13px;color:#1a1a1a;">Late submission ratio</span>
+                <span style="font-size:13px;font-weight:600;color:{'#A32D2D' if late_ratio > 50 else '#27500A'};">{late_ratio}%</span>
+            </div>
+            <div class="bar-track"><div class="bar-fill" style="width:{late_ratio}%;background:{'#E24B4A' if late_ratio > 50 else '#639922'};"></div></div>
+            <div style="display:flex;justify-content:space-between;align-items:baseline;margin:14px 0 4px;">
+                <span style="font-size:13px;color:#1a1a1a;">Assessment week engagement</span>
+                <span style="font-size:13px;font-weight:600;color:#185FA5;">{assess_eng}%</span>
+            </div>
+            <div class="bar-track"><div class="bar-fill" style="width:{min(assess_eng,100)}%;background:#378ADD;"></div></div>
+        </div>
+        <div class="sv-card">
+            <p style="font-size:12px;color:#888;margin:0 0 10px;">Procrastination score</p>
+            <div style="display:flex;align-items:baseline;gap:8px;margin-bottom:8px;">
+                <span style="font-size:28px;font-weight:600;color:#1a1a1a;">{proc_score}</span>
+                <span style="font-size:12px;color:{proc_text};background:{proc_bg};padding:2px 8px;border-radius:20px;">{proc_label}</span>
+            </div>
+            <div class="bar-track"><div class="bar-fill" style="width:{int(proc_score*100)}%;background:{proc_bar};"></div></div>
+            <p style="font-size:12px;color:#aaa;margin:10px 0 0;line-height:1.5;">
+                {'You tend to start assessments close to the deadline.' if proc_score > 0.4 else 'You generally start assessments with good lead time.'}
+            </p>
+        </div>
+    </div>
+ 
+    <p class="sv-label">Study suggestions</p>
+    <div class="sv-card">
+        {tips_html}
+    </div>
+    """, unsafe_allow_html=True)
 
 # ==================================================
 # ACADEMIC DEVELOPER VIEW
