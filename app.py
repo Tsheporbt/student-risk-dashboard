@@ -66,46 +66,175 @@ def assign_risk(prob):
 df["risk_level"] = df["predicted_proba_risk"].apply(assign_risk)
 
 # --------------------------------------------------
-# Authentication
+# Custom CSS — clean minimal sidebar
 # --------------------------------------------------
-st.sidebar.header("Login")
+st.markdown("""
+<style>
+/* Sidebar background */
+[data-testid="stSidebar"] {
+    background-color: #f8f8f6;
+    border-right: 1px solid #e8e8e4;
+}
 
-username = st.sidebar.text_input("Username")
-password = st.sidebar.text_input("Password", type="password")
+/* Logo + title lockup */
+.sidebar-brand {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 0 0 24px 0;
+    border-bottom: 1px solid #e8e8e4;
+    margin-bottom: 24px;
+}
+.sidebar-brand-text .name {
+    font-size: 14px;
+    font-weight: 600;
+    color: #1a1a1a;
+    margin: 0;
+    line-height: 1.2;
+}
+.sidebar-brand-text .sub {
+    font-size: 11px;
+    color: #888;
+    margin: 0;
+}
 
-# Initialize expected session keys with safe defaults
-for key, default in {
-    "authenticated": False,
-    "role": None,
-    "student_id": None
-}.items():
-    if key not in st.session_state:
-        st.session_state[key] = default
+/* Section label */
+.sidebar-section-label {
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: 0.09em;
+    text-transform: uppercase;
+    color: #aaa;
+    margin-bottom: 14px;
+}
 
-# Handle login
-if st.sidebar.button("Login"):
-    if username in USERS and USERS[username]["password"] == password:
-        st.session_state.authenticated = True
-        st.session_state.role = USERS[username]["role"]
-        if USERS[username]["role"] == "Student":
-            st.session_state.student_id = USERS[username]["id_student"]
-        # Rerun so the app picks up the new session state immediately
-        safe_rerun()
+/* Logged-in user chip */
+.user-chip {
+    display: flex;
+    align-items: center;
+    gap: 9px;
+    padding: 10px 12px;
+    background: #fff;
+    border: 1px solid #e8e8e4;
+    border-radius: 8px;
+    margin-top: 8px;
+}
+.user-avatar {
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    background: #dbeafe;
+    color: #1d4ed8;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 11px;
+    font-weight: 600;
+    flex-shrink: 0;
+}
+.user-info .user-name {
+    font-size: 12px;
+    font-weight: 600;
+    color: #1a1a1a;
+    margin: 0;
+}
+.user-info .user-role {
+    font-size: 11px;
+    color: #888;
+    margin: 0;
+}
+
+/* Tighten Streamlit input labels */
+[data-testid="stSidebar"] label {
+    font-size: 12px !important;
+    color: #555 !important;
+    font-weight: 500 !important;
+}
+
+/* Sidebar button styling */
+[data-testid="stSidebar"] .stButton > button {
+    width: 100%;
+    background-color: #1a1a1a;
+    color: #fff;
+    border: none;
+    border-radius: 7px;
+    font-size: 13px;
+    font-weight: 500;
+    height: 36px;
+    margin-top: 4px;
+}
+[data-testid="stSidebar"] .stButton > button:hover {
+    background-color: #333;
+    border: none;
+}
+
+/* Logout button — ghost style */
+[data-testid="stSidebar"] .logout-btn > button {
+    background-color: transparent !important;
+    color: #888 !important;
+    border: 1px solid #e8e8e4 !important;
+    font-size: 12px !important;
+}
+[data-testid="stSidebar"] .logout-btn > button:hover {
+    border-color: #ccc !important;
+    color: #555 !important;
+}
+</style>
+""", unsafe_allow_html=True)
+
+# --------------------------------------------------
+# Sidebar — brand lockup
+# --------------------------------------------------
+with st.sidebar:
+    st.markdown("""
+    <div class="sidebar-brand">
+        <div class="sidebar-brand-text">
+            <p class="name">🎓 The University</p>
+            <p class="sub">Student Analytics</p>
+        </div>
+    </div>
+    """, unsafe_allow_html=True)
+
+    # ---------- Logged OUT ----------
+    if not st.session_state.authenticated:
+        st.markdown('<p class="sidebar-section-label">Sign in</p>', unsafe_allow_html=True)
+        username = st.text_input("Username", placeholder="Enter username")
+        password = st.text_input("Password", type="password", placeholder="••••••••")
+
+        if st.button("Sign in"):
+            if username in USERS and USERS[username]["password"] == password:
+                st.session_state.authenticated = True
+                st.session_state.role = USERS[username]["role"]
+                if USERS[username]["role"] == "Student":
+                    st.session_state.student_id = USERS[username]["id_student"]
+                safe_rerun()
+            else:
+                st.error("Invalid credentials")
+
+    # ---------- Logged IN ----------
     else:
-        st.sidebar.error("Invalid credentials")
+        role = st.session_state.role
+        initials = username[:2].upper() if 'username' in dir() else role[:2].upper()
 
-if not st.session_state.authenticated:
-    st.warning("Please log in to continue.")
-    st.stop()
+        st.markdown(f"""
+        <div class="user-chip">
+            <div class="user-avatar">{initials}</div>
+            <div class="user-info">
+                <p class="user-name">{st.session_state.get('username', role)}</p>
+                <p class="user-role">{role}</p>
+            </div>
+        </div>
+        """, unsafe_allow_html=True)
 
-# Handle logout 
-if st.sidebar.button("Logout"): 
-    st.session_state.authenticated = False
-    st.session_state.role = None
-    st.session_state.student_id = None          
-    safe_rerun()
-
-role = st.session_state.get("role")
+        st.markdown("<br>", unsafe_allow_html=True)
+        with st.container():
+            st.markdown('<div class="logout-btn">', unsafe_allow_html=True)
+            if st.button("Sign out"):
+                st.session_state.authenticated = False
+                st.session_state.role = None
+                st.session_state.student_id = None
+                safe_rerun()
+            st.markdown('</div>', unsafe_allow_html=True)
 
 # ==================================================
 # 🎓 STUDENT VIEW
