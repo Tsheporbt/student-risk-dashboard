@@ -826,6 +826,7 @@ if role == "Student":
 # ==================================================
 elif role == "Academic Developer":
  
+<<<<<<< HEAD
     # ---- cohort stats ----
     total  = df["id_student"].nunique()
     n_high = int((df["risk_level"] == "High Risk").sum())
@@ -1079,6 +1080,17 @@ elif role == "Academic Developer":
     st.markdown(heatmap_html, unsafe_allow_html=True)
  
     st.divider()
+=======
+    st.title("Academic Risk Analytics")
+    st.caption("Decision-support for targeted student interventions")
+ 
+    st.subheader("Risk Overview")
+    col1, col2, col3, col4 = st.columns(4)
+    col1.metric("Total Students", df["id_student"].nunique())
+    col2.metric("High Risk", (df["risk_level"] == "High Risk").sum())
+    col3.metric("Moderate Risk", (df["risk_level"] == "Moderate Risk").sum())
+    col4.metric("Low Risk", (df["risk_level"] == "Low Risk").sum())
+>>>>>>> parent of 63933a2 (update again)
  
     # ---- student drill-down ----
     st.markdown('<p class="section-label">Student Profile</p>', unsafe_allow_html=True)
