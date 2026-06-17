@@ -840,6 +840,45 @@ elif role == "Academic Developer":
     st.markdown('<p class="section-subtitle">Decision-support for targeted student interventions</p>', unsafe_allow_html=True)
     st.markdown("")
     
+    # ---- 6.2: Bulk action summary ----
+    st.markdown('<p class="section-label">Action Summary</p>', unsafe_allow_html=True)
+    action_col1, action_col2, action_col3 = st.columns(3)
+    
+    with action_col1:
+        st.markdown(f"""
+        <div class="app-card" style="border-left:3px solid var(--risk-high);">
+            <p class="section-label" style="margin:0 0 8px;color:var(--risk-high);">Immediate Outreach</p>
+            <p class="data-number" style="margin:0;color:var(--risk-high);">{n_high}</p>
+            <p style="font-size:11px;color:var(--text-muted);margin:6px 0 0;">High risk students</p>
+        </div>
+        """, unsafe_allow_html=True)
+        if st.button("📥 Download High Risk List"):
+            high_risk_export = df[df["risk_level"] == "High Risk"][["id_student", "code_module", "predicted_proba_risk", "active_weeks", "num_submissions"]].to_csv(index=False)
+            st.download_button("Download CSV", high_risk_export, "high_risk_students.csv", "text/csv")
+    
+    with action_col2:
+        st.markdown(f"""
+        <div class="app-card" style="border-left:3px solid var(--risk-mod);">
+            <p class="section-label" style="margin:0 0 8px;color:var(--risk-mod);">Monitor & Support</p>
+            <p class="data-number" style="margin:0;color:var(--risk-mod);">{n_mod}</p>
+            <p style="font-size:11px;color:var(--text-muted);margin:6px 0 0;">Moderate risk students</p>
+        </div>
+        """, unsafe_allow_html=True)
+        if st.button("📥 Download Moderate Risk List"):
+            mod_risk_export = df[df["risk_level"] == "Moderate Risk"][["id_student", "code_module", "predicted_proba_risk", "active_weeks", "num_submissions"]].to_csv(index=False)
+            st.download_button("Download CSV", mod_risk_export, "moderate_risk_students.csv", "text/csv")
+    
+    with action_col3:
+        st.markdown(f"""
+        <div class="app-card" style="border-left:3px solid var(--risk-low);">
+            <p class="section-label" style="margin:0 0 8px;color:var(--risk-low);">Maintain Progress</p>
+            <p class="data-number" style="margin:0;color:var(--risk-low);">{n_low}</p>
+            <p style="font-size:11px;color:var(--text-muted);margin:6px 0 0;">Low risk students</p>
+        </div>
+        """, unsafe_allow_html=True)
+    
+    st.markdown("")
+    
     # ---- risk overview cards ----
     st.markdown('<p class="section-label">Risk Overview</p>', unsafe_allow_html=True)
     col1, col2, col3, col4 = st.columns(4)
@@ -900,19 +939,79 @@ elif role == "Academic Developer":
         '</div></div>'
     )
     st.markdown(dist_html, unsafe_allow_html=True)
+    
+    # ---- 5.2: Cohort equity breakdown panel ----
+    st.markdown('<p class="section-label" style="margin-top:24px;">Equity Snapshot</p>', unsafe_allow_html=True)
+    
+    # IMD band analysis
+    imd_dist = df["imd_band"].value_counts(dropna=False).to_dict()
+    imd_html = '<div class="app-card" style="margin-bottom:12px;"><p style="font-size:12px;font-weight:600;color:var(--text-primary);margin:0 0 10px;">Deprivation (IMD Band)</p>'
+    for band, count in sorted(imd_dist.items()):
+        pct = int(count / len(df) * 100)
+        # Flag high-deprivation bands
+        is_high_dep = band in ['0-20%', '20-40%']
+        imd_html += f'<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;"><span style="font-size:11px;color:var(--text-muted);">{band or "Unknown"}</span><span style="font-size:11px;font-weight:600;color:{"var(--risk-high)" if is_high_dep else "var(--text-primary)"};">{pct}%</span></div>'
+    imd_html += '</div>'
+    st.markdown(imd_html, unsafe_allow_html=True)
+    
+    # Risk by IMD band heatmap
+    imd_risk = df.groupby("imd_band")["predicted_proba_risk"].mean().sort_values(ascending=False)
+    imd_risk_html = '<div class="app-card" style="margin-bottom:12px;"><p style="font-size:12px;font-weight:600;color:var(--text-primary);margin:0 0 10px;">Average Risk by IMD Band</p>'
+    for band, avg_risk in imd_risk.items():
+        bar_width = int(avg_risk * 100)
+        band_color = "var(--risk-high)" if avg_risk >= 0.7 else "var(--risk-mod)" if avg_risk >= 0.4 else "var(--risk-low)"
+        imd_risk_html += f'<div style="margin-bottom:8px;"><div style="display:flex;justify-content:space-between;margin-bottom:2px;"><span style="font-size:11px;color:var(--text-muted);">{band or "Unknown"}</span><span style="font-size:11px;font-weight:600;color:{band_color};">{round(avg_risk, 2)}</span></div><div class="bar-track"><div class="bar-fill" style="width:{bar_width}%;background:{band_color};"></div></div></div>'
+    imd_risk_html += '</div>'
+    st.markdown(imd_risk_html, unsafe_allow_html=True)
+    
+    # Previous attempts breakdown
+    attempts_dist = df["num_of_prev_attempts"].value_counts(sort=False).sort_index()
+    first_attempt_pct = int(attempts_dist.get(0, 0) / len(df) * 100)
+    repeat_pct = 100 - first_attempt_pct
+    st.markdown(f"""
+    <div class="app-card">
+        <p style="font-size:12px;font-weight:600;color:var(--text-primary);margin:0 0 10px;">First Attempt vs. Repeat</p>
+        <div style="display:flex;gap:3px;height:20px;border-radius:4px;overflow:hidden;margin-bottom:8px;">
+            <div style="width:{first_attempt_pct}%;background:var(--risk-low);"></div>
+            <div style="width:{repeat_pct}%;background:var(--risk-high);"></div>
+        </div>
+        <div style="display:flex;gap:12px;font-size:11px;">
+            <span style="color:var(--text-muted);">First attempt: <strong>{first_attempt_pct}%</strong></span>
+            <span style="color:var(--text-muted);">Repeat: <strong>{repeat_pct}%</strong></span>
+        </div>
+    </div>
+    """, unsafe_allow_html=True)
  
-    # ---- filters ----
+    # ---- filters (enhanced 5.4) ----
     st.markdown('<p class="section-label">Filter Students</p>', unsafe_allow_html=True)
     fc1, fc2, fc3 = st.columns(3)
     filter_risk   = fc1.selectbox("Risk level",  ["All"] + ["High Risk", "Moderate Risk", "Low Risk"])
     filter_module = fc2.selectbox("Module",      ["All modules"] + sorted(df["code_module"].dropna().unique().tolist()))
     filter_region = fc3.selectbox("Region",      ["All regions"] + sorted(df["region"].dropna().unique().tolist()))
- 
-    filtered = df.copy()
-    if filter_risk   != "All":         filtered = filtered[filtered["risk_level"]  == filter_risk]
-    if filter_module != "All modules": filtered = filtered[filtered["code_module"] == filter_module]
-    if filter_region != "All regions": filtered = filtered[filtered["region"]      == filter_region]
- 
+    
+    # Additional equity filters
+    fc4, fc5, fc6 = st.columns(3)
+    filter_attempts = fc4.selectbox("Attempt type", ["All", "First attempt", "Repeat attempts"])
+    filter_disability = fc5.selectbox("Disability status", ["All", "Declared (Y)", "Not declared (N)"])
+    filter_age = fc6.selectbox("Age band", ["All"] + sorted([str(x) for x in df["age_band"].dropna().unique()]))
+    
+    # 8.2: Apply filters with loading state
+    with st.spinner("Applying filters..."):
+        filtered = df.copy()
+        if filter_risk   != "All":         filtered = filtered[filtered["risk_level"]  == filter_risk]
+        if filter_module != "All modules": filtered = filtered[filtered["code_module"] == filter_module]
+        if filter_region != "All regions": filtered = filtered[filtered["region"]      == filter_region]
+        if filter_attempts == "First attempt":
+            filtered = filtered[filtered["num_of_prev_attempts"] == 0]
+        elif filter_attempts == "Repeat attempts":
+            filtered = filtered[filtered["num_of_prev_attempts"] > 0]
+        if filter_disability == "Declared (Y)":
+            filtered = filtered[filtered["disability"] == "Y"]
+        elif filter_disability == "Not declared (N)":
+            filtered = filtered[filtered["disability"] == "N"]
+        if filter_age != "All":
+            filtered = filtered[filtered["age_band"] == float(filter_age)]
+    
     # ---- student table ----
     st.markdown('<p class="section-label">All Students</p>', unsafe_allow_html=True)
     display_cols = {
@@ -927,18 +1026,57 @@ elif role == "Academic Developer":
     table_df = table_df.rename(columns=display_cols)
     table_df["Probability"] = table_df["Probability"].round(3)
     table_df = table_df.sort_values("Probability", ascending=False).reset_index(drop=True)
- 
-    st.dataframe(
-        table_df,
-        use_container_width=True,
-        hide_index=True,
-        column_config={
-            "Student ID":  st.column_config.TextColumn("Student ID"),
-            "Probability": st.column_config.ProgressColumn(
-                "Probability", min_value=0, max_value=1, format="%.3f"
-            ),
-        }
+    
+    with st.spinner("Loading student table..."):
+        st.dataframe(
+            table_df,
+            use_container_width=True,
+            hide_index=True,
+            column_config={
+                "Student ID":  st.column_config.TextColumn("Student ID"),
+                "Probability": st.column_config.ProgressColumn(
+                    "Probability", min_value=0, max_value=1, format="%.3f"
+                ),
+            }
+        )
+    
+    # ---- 5.3: Module-level risk heatmap ----
+    st.markdown('<p class="section-label" style="margin-top:24px;">Module × Presentation Risk Heatmap</p>', unsafe_allow_html=True)
+    
+    heatmap_data = df.pivot_table(
+        values="predicted_proba_risk",
+        index="code_module",
+        columns="code_presentation",
+        aggfunc="mean"
     )
+    
+    heatmap_html = '<div class="app-card"><table style="width:100%;border-collapse:collapse;"><tr><th style="padding:8px;text-align:left;font-size:11px;color:var(--text-label);border-bottom:1px solid var(--border);">Module</th>'
+    
+    for col in heatmap_data.columns:
+        heatmap_html += f'<th style="padding:8px;text-align:center;font-size:11px;color:var(--text-label);border-bottom:1px solid var(--border);">{col}</th>'
+    
+    heatmap_html += '</tr>'
+    
+    for idx, row in heatmap_data.iterrows():
+        heatmap_html += f'<tr><td style="padding:8px;font-size:11px;color:var(--text-muted);border-bottom:1px solid var(--border);">{idx}</td>'
+        for val in row:
+            if pd.isna(val):
+                cell_color = "rgba(255,255,255,0.04)"
+                cell_text = "—"
+            else:
+                val_pct = int(val * 100)
+                if val >= 0.7:
+                    cell_color = "rgba(255,77,109,0.3)"
+                elif val >= 0.4:
+                    cell_color = "rgba(255,179,71,0.3)"
+                else:
+                    cell_color = "rgba(0,212,184,0.3)"
+                cell_text = f"{val:.2f}"
+            heatmap_html += f'<td style="padding:8px;text-align:center;background:{cell_color};border-bottom:1px solid var(--border);font-size:11px;font-weight:600;color:var(--text-primary);">{cell_text}</td>'
+        heatmap_html += '</tr>'
+    
+    heatmap_html += '</table></div>'
+    st.markdown(heatmap_html, unsafe_allow_html=True)
  
     st.divider()
  
@@ -979,6 +1117,39 @@ elif role == "Academic Developer":
         </div>
     </div>
     """, unsafe_allow_html=True)
+    
+    # ---- 5.1: Demographic context panel ----
+    imd_band = safe_display(student.get("imd_band", "—"))
+    num_attempts = int(safe_numeric(student.get("num_of_prev_attempts", 0)))
+    disability = safe_display(student.get("disability", "—"))
+    age_band = safe_display(student.get("age_band", "—"))
+    
+    demographic_notes = []
+    
+    if imd_band in ["0-20%", "20-40%"]:
+        demographic_notes.append(f"📍 <strong>High deprivation area ({imd_band})</strong> — Consider access/connectivity barriers before intervention.")
+    
+    if num_attempts > 1:
+        demographic_notes.append(f"🔄 <strong>Repeat attempt (#{num_attempts})</strong> — Repeated attempts increase risk independent of engagement.")
+    
+    if disability == "Y":
+        demographic_notes.append("♿ <strong>Disability declared</strong> — Ensure outreach via agreed support channels.")
+    
+    if age_band and str(age_band) not in ["—", "NaN"]:
+        try:
+            age_val = float(age_band)
+            if age_val >= 55:
+                demographic_notes.append(f"👥 <strong>Mature student ({int(age_val)}+)</strong> — Work/care commitments may affect engagement.")
+        except:
+            pass
+    
+    if demographic_notes:
+        st.markdown('<p class="section-label">Demographic Context</p>', unsafe_allow_html=True)
+        demo_html = '<div class="app-card" style="margin-bottom:24px;border-left:3px solid var(--accent);">'
+        for note in demographic_notes:
+            demo_html += f'<p style="font-size:12px;color:var(--text-muted);margin:8px 0;line-height:1.4;">{note}</p>'
+        demo_html += '</div>'
+        st.markdown(demo_html, unsafe_allow_html=True)
  
     st.markdown('<p class="section-label">Key Engagement Indicators</p>', unsafe_allow_html=True)
     ind_col1, ind_col2, ind_col3, ind_col4 = st.columns(4)
@@ -1019,27 +1190,76 @@ elif role == "Academic Developer":
         </div>
         """, unsafe_allow_html=True)
  
-    # ---- recommended interventions ----
+    # ---- 6.1: Stratified recommendations by risk tier & context ----
     st.markdown('<p class="section-label">Recommended Interventions</p>', unsafe_allow_html=True)
-    actions = []
-    if safe_numeric(student.get("num_submissions", 0)) < 3:
-        actions.append("✓ Academic check-in regarding assessment participation.")
-    if safe_numeric(student.get("engagement_trend", 0)) < 0:
-        actions.append("✓ Offer academic coaching or tutoring support.")
-    if safe_numeric(student.get("procrastination_score", 0)) > 0.4:
-        actions.append("✓ Refer to time-management or study skills support.")
-    if safe_numeric(student.get("active_weeks", 0)) < 5:
-        actions.append("✓ Wellbeing or access-related outreach recommended.")
- 
-    if actions:
-        interventions_html = '<div class="app-card"><ul style="margin:0;padding-left:20px;">'
-        for a in actions:
-            interventions_html += f'<li style="color:var(--text-muted);margin-bottom:6px;">{a}</li>'
-        interventions_html += '</ul></div>'
+    
+    # Collect context factors
+    is_first_attempt = num_attempts == 0
+    is_high_deprivation = imd_band in ["0-20%", "20-40%"]
+    is_disabled = disability == "Y"
+    is_mature = False
+    try:
+        age_val = float(age_band)
+        is_mature = age_val >= 55
+    except:
+        pass
+    
+    low_engagement = safe_numeric(student.get("early_engagement", 50)) < 50
+    negative_trend = safe_numeric(student.get("engagement_trend", 0)) < 0
+    low_submissions = safe_numeric(student.get("num_submissions", 0)) < 3
+    high_procrastination = safe_numeric(student.get("procrastination_score", 0)) > 0.4
+    low_activity_weeks = safe_numeric(student.get("active_weeks", 0)) < 5
+    low_diversity = safe_numeric(student.get("resource_diversity", 0)) < 0.4
+    
+    # Build stratified interventions
+    interventions = []
+    
+    if risk_prob >= 0.7:  # HIGH RISK
+        if is_first_attempt and is_high_deprivation:
+            interventions.append(("🚨", "URGENT: Immediate personal outreach", "First attempt + high deprivation area. Likely disengagement or access barriers."))
+        elif is_first_attempt:
+            interventions.append(("🔴", "Personal outreach required", "High risk on first attempt. Immediate academic check-in needed."))
+        
+        if num_attempts > 1:
+            interventions.append(("🔄", "Academic counselling", "Systematic issue with repeated attempts. Consider deeper intervention."))
+        
+        if is_disabled:
+            interventions.append(("♿", "Coordinate with disability support", "Work with disability services to ensure appropriate accommodations."))
+        
+        if is_mature:
+            interventions.append(("👥", "Flexible deadline discussion", "Mature student — consider workload/care commitments."))
+        
+        if high_procrastination or negative_trend:
+            interventions.append(("⏰", "Study skills + coaching", "Procrastination/engagement decline. Offer time-management support."))
+    
+    elif risk_prob >= 0.4:  # MODERATE RISK
+        if low_diversity:
+            interventions.append(("📚", "Content recommendation email", "Limited resource diversity. Send targeted content suggestions."))
+        
+        if high_procrastination and low_submissions:
+            interventions.append(("✅", "Assessment encouragement", "Late submission pattern + few submissions. Encourage early engagement."))
+        
+        if negative_trend:
+            interventions.append(("📈", "Engagement monitoring", "Declining activity. Monitor closely and follow up in 2 weeks."))
+    
+    else:  # LOW RISK
+        interventions.append(("✓", "Monitor only", "No immediate action required. Continue routine monitoring."))
+    
+    if interventions:
+        interventions_html = '<div class="app-card" style="border-left:4px solid var(--accent);">'
+        for icon, title, desc in interventions:
+            color = "var(--risk-high)" if "URGENT" in title else "var(--accent)"
+            interventions_html += f'''
+            <div style="margin-bottom:14px;padding:10px;background:rgba(255,255,255,0.02);border-radius:6px;">
+                <p style="font-size:12px;font-weight:600;color:{color};margin:0;">{icon} {title}</p>
+                <p style="font-size:11px;color:var(--text-muted);margin:4px 0 0;">{desc}</p>
+            </div>
+            '''
+        interventions_html += '</div>'
         st.markdown(interventions_html, unsafe_allow_html=True)
     else:
         st.markdown("""
         <div class="app-card" style="background:rgba(0,212,184,0.1);border:1px solid var(--risk-low);">
-            <p style="color:var(--risk-low);font-weight:600;margin:0;">✓ No immediate intervention required.</p>
+            <p style="color:var(--risk-low);font-weight:600;margin:0;">✓ No interventions needed at this time.</p>
         </div>
         """, unsafe_allow_html=True)
