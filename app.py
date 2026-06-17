@@ -827,6 +827,7 @@ if role == "Student":
 elif role == "Academic Developer":
  
 <<<<<<< HEAD
+<<<<<<< HEAD
     # ---- cohort stats ----
     total  = df["id_student"].nunique()
     n_high = int((df["risk_level"] == "High Risk").sum())
@@ -1083,6 +1084,17 @@ elif role == "Academic Developer":
 =======
     st.title("Academic Risk Analytics")
     st.caption("Decision-support for targeted student interventions")
+=======
+    st.title("Academic Risk Analytics")
+    st.caption("Decision-support for targeted student interventions")
+ 
+    st.subheader("Risk Overview")
+    col1, col2, col3, col4 = st.columns(4)
+    col1.metric("Total Students", df["id_student"].nunique())
+    col2.metric("High Risk", (df["risk_level"] == "High Risk").sum())
+    col3.metric("Moderate Risk", (df["risk_level"] == "Moderate Risk").sum())
+    col4.metric("Low Risk", (df["risk_level"] == "Low Risk").sum())
+>>>>>>> parent of 63933a2 (update again)
  
     st.subheader("Risk Overview")
     col1, col2, col3, col4 = st.columns(4)
