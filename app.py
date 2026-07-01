@@ -449,6 +449,12 @@ if role == "Student":
     else:
         risk_label = "LOW RISK"
         arc_color = "#00D4B8"
+
+    trend_icon = '📈' if trend > 0 else '↔️' if abs(trend) < 0.05 else '📉'
+    trend_text = 'Your activity is <strong>Improving</strong>' if trend > 0 else 'Your activity is <strong>Stable</strong>' if abs(trend) < 0.05 else 'Your activity is <strong>Decreasing</strong>'
+    trend_change = f'Change: {trend:+.2%}' if abs(trend) >= 0.05 else 'No significant change'
+    trend_footer = ('Great job! Your activity is on the rise, so keep the momentum going.' if trend > 0 else 'Your activity is stable. Maintain this consistency to stay on track.' if abs(trend) < 0.05 else 'Your activity has decreased recently. Try to re-engage with your course material this week.')
+    risk_dashoffset = int(251.33 * (1 - risk_prob))
     
     # SVG gauge with animation
     gauge_svg = f'''
@@ -458,7 +464,7 @@ if role == "Student":
         
         <!-- Animated arc -->
         <circle cx="100" cy="100" r="80" fill="none" stroke="{arc_color}" stroke-width="12" stroke-linecap="round" 
-                stroke-dasharray="251.33" stroke-dashoffset="{{251.33 * (1 - {risk_prob})}}"
+                stroke-dasharray="251.33" stroke-dashoffset="{risk_dashoffset}"
                 style="transition: stroke-dashoffset 1.5s cubic-bezier(0.34, 1.56, 0.64, 1);transform-origin:100px 100px;"/>
         
         <!-- Center text -->
@@ -500,7 +506,7 @@ if role == "Student":
         <div class="gauge-container">
             <p class="section-label" style="margin:0 0 16px;text-align:center;">Your Risk Score</p>
             {gauge_svg}
-            <p class="gauge-subtitle">Based on your engagement patterns</p>
+            <p class="gauge-subtitle">Engagement-based risk summary</p>
         </div>
         <div>
             <div class="app-card">
@@ -511,7 +517,7 @@ if role == "Student":
                             {'📈' if trend > 0 else '↔️' if abs(trend) < 0.05 else '📉'}
                         </div>
                         <p style="margin:0;font-size:13px;color:var(--text-muted);">
-                            {'Your activity is <strong>Increasing</strong>' if trend > 0 else 'Your activity is <strong>Stable</strong>' if abs(trend) < 0.05 else 'Your activity is <strong>Decreasing</strong>'}
+                            {'Your activity is <strong>Improving</strong>' if trend > 0 else 'Your activity is <strong>Stable</strong>' if abs(trend) < 0.05 else 'Your activity is <strong>Decreasing</strong>'}
                         </p>
                         <p style="margin:8px 0 0;font-size:11px;color:var(--text-muted);">
                             {f'Change: {trend:+.2%}' if abs(trend) >= 0.05 else 'No significant change'}
@@ -519,7 +525,7 @@ if role == "Student":
                     </div>
                 </div>
                 <p style="font-size:11px;color:var(--text-muted);margin:0;line-height:1.4;text-align:center;">
-                    Your activity has {'increased' if trend > 0 else 'decreased' if trend < -0.05 else 'remained consistent'} over recent weeks. Keep this momentum going!
+                    {'Great job! Your activity is on the rise, so keep the momentum going.' if trend > 0 else 'Your activity is stable. Maintain this consistency to stay on track.' if abs(trend) < 0.05 else 'Your activity has decreased recently. Try to re-engage with your course material this week.'}
                 </p>
             </div>
         </div>
